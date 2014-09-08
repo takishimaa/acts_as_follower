@@ -68,6 +68,10 @@ module ActsAsFollower #:nodoc:
         self.followings.includes(:follower)
       end
 
+      def follows_scope
+        self.follows.includes(:followable)
+      end
+
       def followers(options={})
         followers_scope = followers_scoped.unblocked
         followers_scope = apply_options_to_scope(followers_scope, options)
@@ -75,9 +79,9 @@ module ActsAsFollower #:nodoc:
       end
 
       def blocks(options={})
-        blocked_followers_scope = followers_scoped.blocked
+        blocked_followers_scope = follows_scope.blocked
         blocked_followers_scope = apply_options_to_scope(blocked_followers_scope, options)
-        blocked_followers_scope.to_a.collect{|f| f.follower}
+        blocked_followers_scope.to_a.collect{|f| f.followable}
       end
 
       # Returns true if the current instance is followed by the passed record
@@ -87,25 +91,29 @@ module ActsAsFollower #:nodoc:
       end
 
       def block(follower)
-        get_follow_for(follower) ? block_existing_follow(follower) : block_future_follow(follower)
+        get_followable_for(follower) ? block_existing_follow(follower) : block_future_follow(follower)
       end
 
       def unblock(follower)
-        get_follow_for(follower).try(:delete)
+        get_followable_for(follower).try(:delete)
       end
 
       def get_follow_for(follower)
         self.followings.for_follower(follower).first
       end
 
+      def get_followable_for(follower)
+        self.follows.for_followable(follower).first
+      end
+
       private
 
       def block_future_follow(follower)
-        Follow.create(:followable => self, :follower => follower, :blocked => true)
+        Follow.create(:followable => follower, :follower => self, :blocked => true)
       end
 
       def block_existing_follow(follower)
-        get_follow_for(follower).block!
+        get_followable_for(follower).block!
       end
 
     end

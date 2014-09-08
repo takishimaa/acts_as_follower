@@ -12,6 +12,9 @@ module ActsAsFollower
     end
 
     def apply_options_to_scope(scope, options = {})
+      if options.has_key?(:offset)
+        scope = scope.offset(options[:offset])
+      end
       if options.has_key?(:limit)
         scope = scope.limit(options[:limit])
       end
